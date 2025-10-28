@@ -1,25 +1,32 @@
-// proxy.js — simpele ICS-proxy voor Outlook
 import express from "express";
 import fetch from "node-fetch";
 
 const app = express();
-const PORT = 3000; // kies een poort
+const PORT = process.env.PORT || 3000;
 
-// ICS-feed URL van Outlook
-const ICS_URL = "https://outlook.office365.com/owa/calendar/8a2b99e533cc4de49da60ef221300ac3@brandweerzonekempen.be/52f46cccb1a846aab7a79ff1a8d37a9513138115846516051108/calendar.ics";
+// ICS-feed URL van je openbare Google Calendar
+const ICS_URL = "https://calendar.google.com/calendar/ical/df2fa36fb8ea4044f8276cf20d9922d6c350e7f7604bb5ad4a53521324f78727%40group.calendar.google.com/public/basic.ics";
 
 // Proxy endpoint
 app.get("/agenda.ics", async (req, res) => {
   try {
+    console.log("Ophalen ICS-feed...");
     const response = await fetch(ICS_URL);
-    if (!response.ok) throw new Error("Fout bij ophalen ICS-feed");
+    if (!response.ok) throw new Error(`Fout bij ophalen ICS-feed: ${response.statusText}`);
     const text = await response.text();
-    res.setHeader("Content-Type", "text/calendar");
+
+    // Zet **CORS header expliciet** voor ALLE domeinen
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+
     res.send(text);
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Kon agenda niet laden");
+    console.error("❌ Fout bij proxy:", err.message);
+    res.status(500).send("Kon agenda niet laden.");
   }
 });
 
-app.listen(PORT, () => console.log(`ICS-proxy draait op http://localhost:${PORT}/agenda.ics`));
+app.listen(PORT, () =>
+  console.log(`✅ ICS-proxy actief op port ${PORT}`)
+);
